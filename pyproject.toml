@@ -1,0 +1,19 @@
+[project]
+name = "booking-project"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "phoenix850508", email = "tom850508@gmail.com"},
+]
+dependencies = ["fastapi>=0.129.0", "sqlalchemy>=2.0.46", "asyncpg>=0.31.0", "alembic>=1.18.4", "pydantic-settings>=2.13.0", "uvicorn[standard]>=0.41.0", "greenlet>=3.4.0", "pyjwt>=2.12.1", "bcrypt>=5.0.0"]
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
