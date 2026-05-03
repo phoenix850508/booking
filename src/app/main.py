@@ -5,6 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.router import router as auth_router
+from app.concerts.router import router as concerts_router
 from app.database import get_session
 from app.models import User
 from app.seed import seed
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(concerts_router)
 
 
 @app.get("/")
@@ -30,15 +32,11 @@ async def health_check(session: AsyncSession = Depends(get_session)):
 async def get_users(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(User.username, User.birthday, User.avatar))
     users = [
-        {"username": row.username, "birthday": row.birthday.isoformat(), "avatar": row.avatar}
+        {
+            "username": row.username,
+            "birthday": row.birthday.isoformat(),
+            "avatar": row.avatar,
+        }
         for row in result.all()
     ]
     return users
-
-
-@app.get("/items/{item_id}")
-async def read_items(*, item_id: int = Path(title="The ID of the item to get"), q: str):
-    results = {"item_id": item_id}
-    if q:
-        results.update({"q": q})
-    return results
