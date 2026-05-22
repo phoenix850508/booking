@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.auth.service import hash_password
 from app.database import engine, async_session
-from app.models import Base, User
+from app.models import Base, Concert, User
 
 
 def _random_birthday() -> date:
