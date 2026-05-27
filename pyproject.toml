@@ -17,3 +17,8 @@ build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = true
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+]

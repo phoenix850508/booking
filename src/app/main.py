@@ -5,6 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.router import router as auth_router
+from app.bookings.router import router as bookings_router
 from app.concerts.router import router as concerts_router
 from app.database import get_session
 from app.models import User
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(concerts_router)
+app.include_router(bookings_router)
 
 
 @app.get("/")
