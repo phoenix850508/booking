@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.auth.service import hash_password
 from app.database import engine, async_session
 from app.models import Base, Concert, TicketTier, User
+from app.redis_client import redis, tier_seats_key
 
 TZ_TPE = timezone(timedelta(hours=8))
 
@@ -289,4 +290,14 @@ async def seed():
                 session.add(tier)
 
         await session.commit()
+
+        # 把每個 tier 的 available_seats 寫進 Redis
+        result = await session.execute(select(TicketTier))
+        tiers = result.scalars().all()
+        async with redis.pipeline() as pipe:
+            for tier in tiers:
+                pipe.set(tier_seats_key(tier.id), tier.available_seats)
+            await pipe.execute()
+
         print(f"Seeded {len(DUMMY_USERS)} users and {len(CONCERTS_DATA)} concerts.")
+        print(f"Synced {len(tiers)} ticket tier(s) to Redis.")
