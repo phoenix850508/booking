@@ -4,8 +4,8 @@ from datetime import date, datetime, timezone, timedelta
 from sqlalchemy import select
 
 from app.auth.service import hash_password
-from app.database import engine, async_session
-from app.models import Base, Concert, TicketTier, User
+from app.database import async_session
+from app.models import Concert, TicketTier, User
 from app.redis_client import redis, tier_seats_key
 
 TZ_TPE = timezone(timedelta(hours=8))
@@ -270,9 +270,6 @@ CONCERTS_DATA = [
 
 
 async def seed():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     async with async_session() as session:
         result = await session.execute(select(User).limit(1))
         if result.scalars().first() is not None:
