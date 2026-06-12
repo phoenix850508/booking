@@ -47,20 +47,30 @@ async def book_concert(
         await redis.incrby(key, body.quantity)
         raise HTTPException(status_code=400, detail="Not enough seats")
 
-    # Redis 已確保不會超賣，直接寫 DB 不需要鎖
-    await session.execute(
-        update(TicketTier)
-        .where(TicketTier.id == body.ticket_tier_id)
-        .values(available_seats=TicketTier.available_seats - body.quantity)
-        .execution_options(synchronize_session=False)
-    )
-    booking = Booking(
-        user_id=current_user.id,
-        concert_id=concert_id,
-        ticket_tier_id=body.ticket_tier_id,
-        quantity=body.quantity,
-    )
-    session.add(booking)
-    await session.commit()
+    try:
+        # Redis 已確保不會超賣，直接寫 DB 不需要鎖
+        # WHERE available_seats >= quantity 作為最後防線，防止 Redis/DB 不同步時數字變負
+        await session.execute(
+            update(TicketTier)
+            .where(
+                TicketTier.id == body.ticket_tier_id,
+                TicketTier.available_seats >= body.quantity,
+            )
+            .values(available_seats=TicketTier.available_seats - body.quantity)
+            .execution_options(synchronize_session=False)
+        )
+        booking = Booking(
+            user_id=current_user.id,
+            concert_id=concert_id,
+            ticket_tier_id=body.ticket_tier_id,
+            quantity=body.quantity,
+        )
+        session.add(booking)
+        await session.commit()
+    except Exception:
+        # DB 寫入失敗時補回 Redis，避免座位數永久不同步
+        await redis.incrby(key, body.quantity)
+        raise
+
     await session.refresh(booking)
     return booking

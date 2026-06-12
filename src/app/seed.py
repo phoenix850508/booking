@@ -272,23 +272,23 @@ CONCERTS_DATA = [
 async def seed():
     async with async_session() as session:
         result = await session.execute(select(User).limit(1))
-        if result.scalars().first() is not None:
-            print("Seed skipped: data already exists.")
-            return
-
-        session.add_all(DUMMY_USERS)
-        await session.flush()
-
-        for concert, tiers in CONCERTS_DATA:
-            session.add(concert)
+        if result.scalars().first() is None:
+            session.add_all(DUMMY_USERS)
             await session.flush()
-            for tier in tiers:
-                tier.concert_id = concert.id
-                session.add(tier)
 
-        await session.commit()
+            for concert, tiers in CONCERTS_DATA:
+                session.add(concert)
+                await session.flush()
+                for tier in tiers:
+                    tier.concert_id = concert.id
+                    session.add(tier)
 
-        # 把每個 tier 的 available_seats 寫進 Redis
+            await session.commit()
+            print(f"Seeded {len(DUMMY_USERS)} users and {len(CONCERTS_DATA)} concerts.")
+        else:
+            print("Seed skipped: data already exists.")
+
+        # 每次啟動都從 DB 同步 Redis，確保 Redis 重啟後座位數正確
         result = await session.execute(select(TicketTier))
         tiers = result.scalars().all()
         async with redis.pipeline() as pipe:
@@ -296,5 +296,4 @@ async def seed():
                 pipe.set(tier_seats_key(tier.id), tier.available_seats)
             await pipe.execute()
 
-        print(f"Seeded {len(DUMMY_USERS)} users and {len(CONCERTS_DATA)} concerts.")
         print(f"Synced {len(tiers)} ticket tier(s) to Redis.")
